@@ -32,6 +32,18 @@ def preProcessarTexto(texto):
     return texto_limpo
 
 
+def divisorHoldUp(dados):
+    qtde_total = len(dados);
+    dados_treino = []
+    dados_validacao = []
+    for index in range(qtde_total):
+        if index < qtde_total * 0.75:
+            dados_treino.append(dados[index])
+        else:
+            dados_validacao.append(dados[index])
+    return dados_treino, dados_validacao
+
+
 
 
 data_set = open('./depressivas.txt', 'r', encoding="utf8")
@@ -42,7 +54,11 @@ data_set = open('./nao-depressivas.txt', 'r', encoding="utf8")
 nao_depressivas = preProcessarTexto(data_set)
 data_set.close()
 
-print(depressivas)
+
+
+
+dados_treino, dados_validacao = divisorHoldUp(depressivas)
+print('Tamanho de dados para Treino {}\nTamanho de dados para Validação {}'.format(len(dados_treino), len(dados_validacao)))
 
 teste = input("Insira uma frase: \n")
 print(preProcessarTexto([teste]))
