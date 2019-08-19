@@ -34,10 +34,15 @@ def preProcessarTexto(texto):
 
 
 
-depressivas = open('./depressivas.txt', 'r', encoding="utf8")
-nao_depressivas = open('./nao-depressivas.txt', 'r', encoding="utf8")
+data_set = open('./depressivas.txt', 'r', encoding="utf8")
+depressivas = preProcessarTexto(data_set)
+data_set.close()
 
-print(preProcessarTexto(depressivas))
+data_set = open('./nao-depressivas.txt', 'r', encoding="utf8")
+nao_depressivas = preProcessarTexto(data_set)
+data_set.close()
+
+print(depressivas)
 
 teste = input("Insira uma frase: \n")
 print(preProcessarTexto([teste]))
