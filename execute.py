@@ -1,3 +1,4 @@
+import random
 import unicodedata
 import warnings
 warnings.filterwarnings(action='ignore', category=UserWarning,  module='gensim')
@@ -6,6 +7,7 @@ import nltk
 from nltk import RegexpTokenizer, stem
 import gensim
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
+from sklearn.naive_bayes import GaussianNB
 import numpy as np
 
 tokenizer = RegexpTokenizer(r'\w+')
@@ -49,7 +51,7 @@ def divisorHoldUp(dados):
     return dados_treino, dados_validacao
 
 
-def treinar_modelo(tagged_data):
+def treinar_modelo(documentos):
     max_epochs =  1000 # num de iteracões que vão percorrer o corpus.
     vec_size = 500  #Dimensão dos vetores de recursos.
     alpha = 0.01 #Setando taxa de apredizagem inicial.
@@ -64,21 +66,41 @@ def treinar_modelo(tagged_data):
     )
 
     # Cria o vocabulário
-    model.build_vocab(tagged_data)
+    model.build_vocab(documentos)
 
     for epoch in range(max_epochs):
-        model.train(tagged_data,
+        model.train(documentos,
                     total_examples = model.corpus_count,
-                    epochs=model.epochs
+                    epochs=model.iter
                     )
         model.alpha -= 0.0002
 
         model.min_alpha = model.alpha
     return model
 
+def criarVetorWord2Vec(model, vetorPalavra):
+    return model.infer_vector(vetorPalavra, steps=1000, alpha=0.01)
 
 
+def classificar_naive_bayes(model, depressivas, nao_depressivas):
+    #concatenando em tabela
+    array = [[criarVetorWord2Vec(model, depressiva), 1] for depressiva in depressivas]
+    array += [[criarVetorWord2Vec(model, nao_depressiva), 0] for nao_depressiva in nao_depressivas]
 
+    # separador de array e label(teste)
+    treino_array = []
+    treino_labels = []
+
+    for index in range(len(array)):
+        treino_array.append(array[index][0])
+        treino_labels.append(array[index][1])
+
+    print(treino_array)
+    # Função que treina o classificador Naive Bayes
+    classificacao = GaussianNB()
+    classificacao.fit(treino_array, treino_labels)
+
+    return classificacao
 
 
 data_set = open('./depressivas.txt', 'r', encoding="utf8")
@@ -95,30 +117,40 @@ data_set.close()
 treino_depressivas, validacao_depressivas = divisorHoldUp(depressivas)
 treino_nao_depressivas, validacao_nao_depressivas = divisorHoldUp(nao_depressivas)
 
-
 #Constroi uma label para cada vetor, com o formato que o algoritmo doc2vec aceita.
-#tagged_data = [TaggedDocument(words=linha, tags=['0','NÃO_DEPRESSIVAS_'+str(index)]) for index, linha in enumerate(treino_nao_depressivas)]
-#tagged_data += [TaggedDocument(words=linha, tags=['1','DEPRESSIVAS_'+str(index)]) for index, linha in enumerate(treino_depressivas)]
+#documentos = [TaggedDocument(words=linha, tags=['0','NÃO_DEPRESSIVAS_'+str(index)]) for index, linha in enumerate(treino_nao_depressivas)]
+#documentos += [TaggedDocument(words=linha, tags=['1','DEPRESSIVAS_'+str(index)]) for index, linha in enumerate(treino_depressivas)]
 
 #executa treinamento
-    #model = treinar_modelo(tagged_data)
-    #model.save('d2v.model')
-    #print("modelo salvo")
+'''
+model = treinar_modelo(documentos)
+model.save('teste.model')
+print("modelo salvo")
+'''
 
 model = Doc2Vec.load('d2v.model')
+classificacao = classificar_naive_bayes(model, treino_depressivas, treino_nao_depressivas)
 
 
-def criarVetorWord2Vec():
+#### Precisão do Algoritmo ####
+
+array_frases_depressivas = []
+for frase in validacao_depressivas:
+    array_frases_depressivas.append(criarVetorWord2Vec(model, frase))
+
+print(array_frases_depressivas)
+
+'''array_frases_nao_depressivas = []
+for frase in validacao_nao_depressivas:
+    array_frases_nao_depressivas.append(criarVetorWord2Vec(model, frase))
+    
+array_naive_bayes = []
+for frase in array_frases_depressivas:
+    precisao = '''
 
 
 
-def classificador_naive_bayes(model, treino_depressivas, treino_nao_depressivas):
-    array = [[criarVetorWord2Vec()]]
 
-
-
-teste = float(input("testando:"))
-print("{:6.2f}% de chance ".format(teste * 100))
 
 
 
