@@ -20,6 +20,7 @@ stemmer = stem.RSLPStemmer()
 def preProcessarTexto(texto):
     texto_limpo = []
 
+    ''' teste '''
     for linha in texto:
         linha = linha.lower().strip()
 
