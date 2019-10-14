@@ -13,79 +13,8 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn import metrics
 import os.path
 
-if __name__ == '__main__':
-    tokenizer = RegexpTokenizer(r'\w+')
-    stopword_set = set(stopwords.words('portuguese'))
-    stemmer = stem.RSLPStemmer()
-
-    data_set = get_dataset('depressive')
-    depressive = pre_process(data_set)
-    data_set.close()
-
-    data_set = get_dataset('non_depressive')
-    non_depressive = pre_process(data_set)
-    data_set.close()
-
-    train_depressive, validation_depressive = share_base(depressive)
-    train_non_depressive, validation_non_depressive = share_base(non_depressive)
-
-    # Gera o rótulo para o vetor, padrão atribuição do Doc2Vec
-    tagged_data = [TaggedDocument(words=linha, tags=['0','NÃO_DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_non_depressive)]
-    tagged_data += [TaggedDocument(words=linha, tags=['1','DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_depressive)]
-
-    model = load_model('Depression_Model')
-
-    # Gera classificador
-    classifier_naive_bayes = generate_classifier(model, train_depressive, train_non_depressive)
-
-    vectors_phrase_depressive = []
-    for phrase in validation_depressive:
-        vectors_phrase_depressive.append(generate_vector(model, phrase))
-
-    vectors_non_depressive_phrase = []
-    for phrase in validation_non_depressive:
-        vectors_non_depressive_phrase.append(generate_vector(model, phrase))
-
-    vector_result_expected = [1 for i in range(len(vectors_phrase_depressive))]
-    vector_result_expected += [0 for i in range(len(vectors_non_depressive_phrase))]
-
-    #Atribuição dos valores aos vetores 
-    vector_naive_bayes = []
-    for phrase in vectors_phrase_depressive:
-        result = classifier_naive_bayes.predict_proba([phrase])
-        if result[0][0] < result[0][1]:
-            vector_naive_bayes.append(1)
-        else:
-            vector_naive_bayes.append(0)
-    for phrase in vectors_non_depressive_phrase:
-        result = classifier_naive_bayes.predict_proba([phrase])
-        if result[0][0] < result[0][1]:
-            vector_naive_bayes.append(1)
-        else:
-            vector_naive_bayes.append(0)
-
-    print("\n\n####  Naive Bayes  ####")
-    print_metrics(vector_result_expected, vector_naive_bayes)
-
-    while(1):
-        phrase = input('Informe uma frase para classificação: ')
-        print('\nFrase informada: \"' + phrase + '\"')
-        phrase = pre_process([phrase])
-        print('\nFrase após tratamento:')
-        print(phrase)
-        vector = generate_vector(model, phrase[0])
-        print('Vetor gerado:')
-        print(vector)
-        result = classifier_naive_bayes.predict_proba([vector])
-        print('\nResultado: ')
-        print(' * {:6.2f}% de chance da frase possuir características depressivas'.format(result[0][1]     * 100))
-        print(' * {:6.2f}% de chance da frase não possuir características depressivas'.format(result[0][0] * 100))
-        print('\n * frase com características depressivas' if result[0][0] < result[0][1] else '\n * frase sem características depressivas!')
-
-        if (input('\n\nDeseja classificar outra frase?(sim)(não)\n') == 'não'):
-            break
-
 def pre_process(data_set):
+    tokenizer = RegexpTokenizer(r'\w+')
     new_data = []
     for phrase in data_set:
         phrase = phrase.strip()
@@ -170,3 +99,74 @@ def load_model(name_model):
 def get_dataset(name_dataset):
     data_set = open(name_dataset+'.txt', 'r')
     return data_set
+
+if __name__ == '__main__':
+    stopword_set = set(stopwords.words('portuguese'))
+    stemmer = stem.RSLPStemmer()
+
+    data_set = get_dataset('depressive')
+    depressive = pre_process(data_set)
+    data_set.close()
+
+    data_set = get_dataset('non_depressive')
+    non_depressive = pre_process(data_set)
+    data_set.close()
+
+    train_depressive, validation_depressive = share_base(depressive)
+    train_non_depressive, validation_non_depressive = share_base(non_depressive)
+
+    # Gera o rótulo para o vetor, padrão atribuição do Doc2Vec
+    tagged_data = [TaggedDocument(words=linha, tags=['0','NÃO_DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_non_depressive)]
+    tagged_data += [TaggedDocument(words=linha, tags=['1','DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_depressive)]
+
+    model = load_model('Depression_Model')
+
+    # Gera classificador
+    classifier_naive_bayes = generate_classifier(model, train_depressive, train_non_depressive)
+
+    vectors_phrase_depressive = []
+    for phrase in validation_depressive:
+        vectors_phrase_depressive.append(generate_vector(model, phrase))
+
+    vectors_non_depressive_phrase = []
+    for phrase in validation_non_depressive:
+        vectors_non_depressive_phrase.append(generate_vector(model, phrase))
+
+    vector_result_expected = [1 for i in range(len(vectors_phrase_depressive))]
+    vector_result_expected += [0 for i in range(len(vectors_non_depressive_phrase))]
+
+    #Atribuição dos valores aos vetores 
+    vector_naive_bayes = []
+    for phrase in vectors_phrase_depressive:
+        result = classifier_naive_bayes.predict_proba([phrase])
+        if result[0][0] < result[0][1]:
+            vector_naive_bayes.append(1)
+        else:
+            vector_naive_bayes.append(0)
+    for phrase in vectors_non_depressive_phrase:
+        result = classifier_naive_bayes.predict_proba([phrase])
+        if result[0][0] < result[0][1]:
+            vector_naive_bayes.append(1)
+        else:
+            vector_naive_bayes.append(0)
+
+    print("\n\n####  Naive Bayes  ####")
+    print_metrics(vector_result_expected, vector_naive_bayes)
+
+    while(1):
+        phrase = input('Informe uma frase para classificação: ')
+        print('\nFrase informada: \"' + phrase + '\"')
+        phrase = pre_process([phrase])
+        print('\nFrase após tratamento:')
+        print(phrase)
+        vector = generate_vector(model, phrase[0])
+        print('Vetor gerado:')
+        print(vector)
+        result = classifier_naive_bayes.predict_proba([vector])
+        print('\nResultado: ')
+        print(' * {:6.2f}% de chance da frase possuir características depressivas'.format(result[0][1]     * 100))
+        print(' * {:6.2f}% de chance da frase não possuir características depressivas'.format(result[0][0] * 100))
+        print('\n * frase com características depressivas' if result[0][0] < result[0][1] else '\n * frase sem características depressivas!')
+
+        if (input('\n\nDeseja classificar outra frase?(sim)(não)\n') == 'não'):
+            break
