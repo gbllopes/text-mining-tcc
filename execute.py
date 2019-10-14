@@ -15,7 +15,10 @@ import os.path
 
 def pre_process(data_set):
     tokenizer = RegexpTokenizer(r'\w+')
+    stopword_set = set(stopwords.words('portuguese'))
+    stemmer = stem.RSLPStemmer()
     new_data = []
+
     for phrase in data_set:
         phrase = phrase.strip()
         if phrase != '':
@@ -101,9 +104,6 @@ def get_dataset(name_dataset):
     return data_set
 
 if __name__ == '__main__':
-    stopword_set = set(stopwords.words('portuguese'))
-    stemmer = stem.RSLPStemmer()
-
     data_set = get_dataset('depressive')
     depressive = pre_process(data_set)
     data_set.close()
