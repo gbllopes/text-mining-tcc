@@ -87,11 +87,11 @@ def print_metrics(vector_expected, vector_results):
 # Treina um novo modelo caso necessário, carrega e retorna
 def load_model(name_model):
     if os.path.exists(name_model+'.model'):
-        model = Doc2Vec.load("Depression_Model.model")
+        model = Doc2Vec.load(name_model+'.model')
         print('Modelo carregado')
     else:
         model = train_model(tagged_data)
-        model.save("Depression_Model.model")
+        model.save(name_model+'.model')
         print('Novo modelo treinado e salvo')
     return model
 
@@ -150,13 +150,13 @@ if __name__ == '__main__':
     print_metrics(vector_result_expected, vector_naive_bayes)
 
     while(1):
-        phrase = input('Favor informar frase a ser testada: ')
-        print('\nFrase a ser testada: \"' + phrase + '\"')
+        phrase = input('Informe uma frase para classificação: ')
+        print('\nFrase informada: \"' + phrase + '\"')
         phrase = pre_process([phrase])
         print('\nFrase após tratamento:')
         print(phrase)
         vector = generate_vector(model, phrase[0])
-        print('vector gerado a partir da frase:')
+        print('Vetor gerado:')
         print(vector)
         result = classifier_naive_bayes.predict_proba([vector])
         print('\nResultado: ')
@@ -164,5 +164,5 @@ if __name__ == '__main__':
         print(' * {:6.2f}% de chance da frase não possuir características depressivas'.format(result[0][0] * 100))
         print('\n * frase com características depressivas' if result[0][0] < result[0][1] else '\n * frase sem características depressivas!')
 
-        if (input('\n\nDeseja testar uma nova frase?(sim)(não)\n') == 'não'):
+        if (input('\n\nDeseja classificar outra frase?(sim)(não)\n') == 'não'):
             break
