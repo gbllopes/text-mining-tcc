@@ -11,24 +11,18 @@ import unicodedata
 import csv
 from sklearn.naive_bayes import GaussianNB
 from sklearn import metrics
+import os.path
 
 def pre_process(data_set):
     new_data = []
-    
     for phrase in data_set:
         phrase = phrase.strip()
-
         if phrase != '':
-
             new_str = unicodedata.normalize('NFD', phrase.lower() ).encode('ASCII', 'ignore').decode('UTF-8')       
-
             dlist = tokenizer.tokenize(new_str)
-
             dlist = list(set(dlist).difference(stopword_set))
-            
             for s in range(len(dlist)):
                 dlist[s] = stemmer.stem(dlist[s])
-            
             new_data.append(dlist)
     return new_data
 
@@ -37,13 +31,11 @@ def share_base(data):
     percentage_train = 0.75
     train = []
     validation = []
-
     for index in range(0, amount_total):
         if index < amount_total * percentage_train:
             train.append(data[index])
         else:
             validation.append(data[index])
-
     return train, validation
 
 #Função que treina o modelo Doc2Vec
@@ -51,7 +43,6 @@ def train_model(tagged_data):
     max_epochs = 100 # Número de iterações sobre o corpus.
     vec_size = 20 # Dimensão dos vetores de recursos.
     alpha = 0.025 # Taxa de apredizagem inicial.
-
     model = Doc2Vec(
         vector_size=vec_size,
         alpha=alpha, 
@@ -59,16 +50,12 @@ def train_model(tagged_data):
         min_count=1,# Descarta do aprendizado palavras com frequência total menor que o valor setado.
         window = 20,
         dm =1) # Define o algoritmo de treinamento. Se dm = 1 , 'memória distribuída' (PV-DM) é usada. Caso contrário, o pacote distribuído de palavras (PV-DBOW) é empregado.
-
     model.build_vocab(tagged_data)
-
     for epoch in range(max_epochs):
         model.train(tagged_data,
                     total_examples=model.corpus_count,
                     epochs=model.iter)
-
         model.alpha -= 0.0002
-
         model.min_alpha = model.alpha
     return model
 
@@ -79,20 +66,15 @@ def generate_vector(model, wordVector):
 def generate_classifier(model, depressive, non_depressive):
     array =  [[generate_vector(model, depressive), 1] for depressive in depressive]
     array += [[generate_vector(model, non_depressive), 0] for non_depressive in non_depressive]
-
     random.shuffle(array)
-
     train_array = []
     train_labels = []
-
     for index in range(len(array)):
         train_array.append(array[index][0])
         train_labels.append(array[index][1])
-        
     # Treina Naive Bayes
     classifier = GaussianNB()
     classifier.fit(train_array, train_labels)
-
     return classifier
 
 def print_metrics(vector_expected, vector_results):
@@ -102,11 +84,20 @@ def print_metrics(vector_expected, vector_results):
     accuracy = metrics.accuracy_score(vector_expected, vector_results)
     print("Taxa de acurácia: {:6.2f}%".format(accuracy * 100))
 
+# Treina um novo modelo caso necessário, carrega e retorna
+def load_model(name_model):
+    if os.path.exists(name_model+'.model'):
+        model = Doc2Vec.load("Depression_Model.model")
+        print('Modelo carregado')
+    else:
+        model = train_model(tagged_data)
+        model.save("Depression_Model.model")
+        print('Novo modelo treinado e salvo')
+    return model
+
 if __name__ == '__main__':
     tokenizer = RegexpTokenizer(r'\w+')
-
     stopword_set = set(stopwords.words('portuguese'))
-
     stemmer = stem.RSLPStemmer()
 
     data_set = open('depressive.txt', 'r')
@@ -124,16 +115,10 @@ if __name__ == '__main__':
     tagged_data = [TaggedDocument(words=linha, tags=['0','NÃO_DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_non_depressive)]
     tagged_data += [TaggedDocument(words=linha, tags=['1','DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_depressive)]
 
-    # Inicializa e treina modelo
-    # model = train_model(tagged_data)
-    # model.save("Depression_Model.model")
-    # print("Modelo Treinado e Salvo!!")
-
-    # Carrega o modelo já treinado.
-    model= Doc2Vec.load("Depression_Model.model")
+    model = load_model('Depression_Model')
 
     # Gera classificador
-    classifier_naive_bayes       = generate_classifier(model, train_depressive, train_non_depressive)
+    classifier_naive_bayes = generate_classifier(model, train_depressive, train_non_depressive)
 
     vectors_phrase_depressive = []
     for phrase in validation_depressive:
@@ -174,9 +159,9 @@ if __name__ == '__main__':
         print('vector gerado a partir da frase:')
         print(vector)
         result = classifier_naive_bayes.predict_proba([vector])
-        print('\nresult: ')
-        print(' * {:6.2f}% de chance da frase possuir característica depressivas'.format(result[0][1]     * 100))
-        print(' * {:6.2f}% de chance da frase não possuir característica depressivas'.format(result[0][0] * 100))
+        print('\nResultado: ')
+        print(' * {:6.2f}% de chance da frase possuir características depressivas'.format(result[0][1]     * 100))
+        print(' * {:6.2f}% de chance da frase não possuir características depressivas'.format(result[0][0] * 100))
         print('\n * frase com características depressivas' if result[0][0] < result[0][1] else '\n * frase sem características depressivas!')
 
         if (input('\n\nDeseja testar uma nova frase?(sim)(não)\n') == 'não'):
