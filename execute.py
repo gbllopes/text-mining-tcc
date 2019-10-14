@@ -9,23 +9,18 @@ from nltk import RegexpTokenizer, stem
 from nltk.corpus import stopwords
 import unicodedata
 import csv
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.naive_bayes import GaussianNB
-from sklearn.ensemble import GradientBoostingClassifier
 from sklearn import metrics
-import matplotlib.pyplot as plt
-import numpy as np
 
-def pre_processar(data_set):
+def pre_process(data_set):
     new_data = []
     
-    for frase in data_set:
-        frase = frase.strip()
+    for phrase in data_set:
+        phrase = phrase.strip()
 
-        if frase != '':
+        if phrase != '':
 
-            new_str = unicodedata.normalize('NFD', frase.lower() ).encode('ASCII', 'ignore').decode('UTF-8')       
+            new_str = unicodedata.normalize('NFD', phrase.lower() ).encode('ASCII', 'ignore').decode('UTF-8')       
 
             dlist = tokenizer.tokenize(new_str)
 
@@ -37,22 +32,22 @@ def pre_processar(data_set):
             new_data.append(dlist)
     return new_data
 
-def dividir_base(dados):
-    quantidade_total = len(dados)
-    percentual_treino = 0.75
-    treino = []
-    validacao = []
+def share_base(data):
+    amount_total = len(data)
+    percentage_train = 0.75
+    train = []
+    validation = []
 
-    for indice in range(0, quantidade_total):
-        if indice < quantidade_total * percentual_treino:
-            treino.append(dados[indice])
+    for index in range(0, amount_total):
+        if index < amount_total * percentage_train:
+            train.append(data[index])
         else:
-            validacao.append(dados[indice])
+            validation.append(data[index])
 
-    return treino, validacao
+    return train, validation
 
 #Função que treina o modelo Doc2Vec
-def treinar_modelo(tagged_data):
+def train_model(tagged_data):
     max_epochs = 100 # Número de iterações sobre o corpus.
     vec_size = 20 # Dimensão dos vetores de recursos.
     alpha = 0.025 # Taxa de apredizagem inicial.
@@ -77,13 +72,13 @@ def treinar_modelo(tagged_data):
         model.min_alpha = model.alpha
     return model
 
-def gerar_vetor(model, wordVector):
+def generate_vector(model, wordVector):
     return model.infer_vector(wordVector, steps=1000, alpha=0.01)
 
 # Gera o classificador ( Naive Bayes )
-def gerar_classificador(model, depressivas, nao_depressivas):
-    array =  [[gerar_vetor(model, depressiva), 1] for depressiva in depressivas]
-    array += [[gerar_vetor(model, nao_depressiva), 0] for nao_depressiva in nao_depressivas]
+def generate_classifier(model, depressive, non_depressive):
+    array =  [[generate_vector(model, depressive), 1] for depressive in depressive]
+    array += [[generate_vector(model, non_depressive), 0] for non_depressive in non_depressive]
 
     random.shuffle(array)
 
@@ -95,17 +90,17 @@ def gerar_classificador(model, depressivas, nao_depressivas):
         train_labels.append(array[index][1])
         
     # Treina Naive Bayes
-    classificador = GaussianNB()
-    classificador.fit(train_array, train_labels)
+    classifier = GaussianNB()
+    classifier.fit(train_array, train_labels)
 
-    return classificador
+    return classifier
 
-def imprime_metricas(vetor_esperado, vetor_resultados):
-    precisao = metrics.precision_score(vetor_esperado, vetor_resultados)
-    print("Taxa de precisão: {:6.2f}%".format(precisao * 100))
+def print_metrics(vector_expected, vector_results):
+    precision = metrics.precision_score(vector_expected, vector_results)
+    print("Taxa de precisão: {:6.2f}%".format(precision * 100))
 
-    acuracia = metrics.accuracy_score(vetor_esperado, vetor_resultados)
-    print("Taxa de acurácia: {:6.2f}%".format(acuracia * 100))
+    accuracy = metrics.accuracy_score(vector_expected, vector_results)
+    print("Taxa de acurácia: {:6.2f}%".format(accuracy * 100))
 
 if __name__ == '__main__':
     tokenizer = RegexpTokenizer(r'\w+')
@@ -114,75 +109,75 @@ if __name__ == '__main__':
 
     stemmer = stem.RSLPStemmer()
 
-    data_set = open('depressivas.txt', 'r')
-    depressiva = pre_processar(data_set)
+    data_set = open('depressive.txt', 'r')
+    depressive = pre_process(data_set)
     data_set.close()
 
-    data_set = open('nao_depressivas.txt', 'r')
-    nao_depressiva = pre_processar(data_set)
+    data_set = open('not_depressive.txt', 'r')
+    non_depressive = pre_process(data_set)
     data_set.close()
 
-    treino_depressiva, validacao_depressiva = dividir_base(depressiva)
-    treino_nao_depressiva, validacao_nao_depressiva = dividir_base(nao_depressiva)
+    train_depressive, validation_depressive = share_base(depressive)
+    train_non_depressive, validation_non_depressive = share_base(non_depressive)
 
-    # Cria a label para o vetor. Esta é a forma que o doc2vec aceita
-    tagged_data = [TaggedDocument(words=linha, tags=['0','NÃO_DEPRESSIVA_'+str(index)]) for index, linha in enumerate(treino_nao_depressiva)]
-    tagged_data += [TaggedDocument(words=linha, tags=['1','DEPRESSIVA_'+str(index)]) for index, linha in enumerate(treino_depressiva)]
+    # Gera o rótulo para o vetor, padrão atribuição do Doc2Vec
+    tagged_data = [TaggedDocument(words=linha, tags=['0','NÃO_DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_non_depressive)]
+    tagged_data += [TaggedDocument(words=linha, tags=['1','DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_depressive)]
 
     # Inicializa e treina modelo
-    # model = treinar_modelo(tagged_data)
-    # model.save("doc2vec.model")
-    # print("Model Saved")
+    # model = train_model(tagged_data)
+    # model.save("Depression_Model.model")
+    # print("Modelo Treinado e Salvo!!")
 
     # Carrega o modelo já treinado.
-    model= Doc2Vec.load("doc2vec.model")
+    model= Doc2Vec.load("Depression_Model.model")
 
     # Gera classificador
-    classificador_naive_bayes       = gerar_classificador(model, treino_depressiva, treino_nao_depressiva)
+    classifier_naive_bayes       = generate_classifier(model, train_depressive, train_non_depressive)
 
-    vetores_frases_depressivas = []
-    for frase in validacao_depressiva:
-        vetores_frases_depressivas.append(gerar_vetor(model, frase))
+    vectors_phrase_depressive = []
+    for phrase in validation_depressive:
+        vectors_phrase_depressive.append(generate_vector(model, phrase))
 
-    vetores_frases_nao_depressivas = []
-    for frase in validacao_nao_depressiva:
-        vetores_frases_nao_depressivas.append(gerar_vetor(model, frase))
+    vectors_non_depressive_phrase = []
+    for phrase in validation_non_depressive:
+        vectors_non_depressive_phrase.append(generate_vector(model, phrase))
 
-    vetor_resultado_esperado = [1 for i in range(len(vetores_frases_depressivas))]
-    vetor_resultado_esperado += [0 for i in range(len(vetores_frases_nao_depressivas))]
+    vector_result_expected = [1 for i in range(len(vectors_phrase_depressive))]
+    vector_result_expected += [0 for i in range(len(vectors_non_depressive_phrase))]
 
     #Atribuição dos valores aos vetores 
-    vetor_naive_bayes = []
-    for frase in vetores_frases_depressivas:
-        resultado = classificador_naive_bayes.predict_proba([frase])
-        if resultado[0][0] < resultado[0][1]:
-            vetor_naive_bayes.append(1)
+    vector_naive_bayes = []
+    for phrase in vectors_phrase_depressive:
+        result = classifier_naive_bayes.predict_proba([phrase])
+        if result[0][0] < result[0][1]:
+            vector_naive_bayes.append(1)
         else:
-            vetor_naive_bayes.append(0)
-    for frase in vetores_frases_nao_depressivas:
-        resultado = classificador_naive_bayes.predict_proba([frase])
-        if resultado[0][0] < resultado[0][1]:
-            vetor_naive_bayes.append(1)
+            vector_naive_bayes.append(0)
+    for phrase in vectors_non_depressive_phrase:
+        result = classifier_naive_bayes.predict_proba([phrase])
+        if result[0][0] < result[0][1]:
+            vector_naive_bayes.append(1)
         else:
-            vetor_naive_bayes.append(0)
+            vector_naive_bayes.append(0)
 
     print("\n\n####  Naive Bayes  ####")
-    imprime_metricas(vetor_resultado_esperado, vetor_naive_bayes)
+    print_metrics(vector_result_expected, vector_naive_bayes)
 
     while(1):
-        frase = input('Favor informar frase a ser testada: ')
-        print('\nFrase a ser testada: \"' + frase + '\"')
-        frase = pre_processar([frase])
+        phrase = input('Favor informar frase a ser testada: ')
+        print('\nFrase a ser testada: \"' + phrase + '\"')
+        phrase = pre_process([phrase])
         print('\nFrase após tratamento:')
-        print(frase)
-        vetor = gerar_vetor(model, frase[0])
-        print('Vetor gerado a partir da frase:')
-        print(vetor)
-        resultado = classificador_naive_bayes.predict_proba([vetor])
-        print('\nResultado: ')
-        print(' * {:6.2f}% de chance da frase possuir característica depressiva'.format(resultado[0][1]     * 100))
-        print(' * {:6.2f}% de chance da frase não possuir característica depressiva'.format(resultado[0][0] * 100))
-        print('\n * Frase com característica depressiva' if resultado[0][0] < resultado[0][1] else '\n * Frase sem característica depressiva!')
+        print(phrase)
+        vector = generate_vector(model, phrase[0])
+        print('vector gerado a partir da frase:')
+        print(vector)
+        result = classifier_naive_bayes.predict_proba([vector])
+        print('\nresult: ')
+        print(' * {:6.2f}% de chance da frase possuir característica depressivas'.format(result[0][1]     * 100))
+        print(' * {:6.2f}% de chance da frase não possuir característica depressivas'.format(result[0][0] * 100))
+        print('\n * frase com características depressivas' if result[0][0] < result[0][1] else '\n * frase sem características depressivas!')
 
         if (input('\n\nDeseja testar uma nova frase?(sim)(não)\n') == 'não'):
             break
