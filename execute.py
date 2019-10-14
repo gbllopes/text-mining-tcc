@@ -98,7 +98,7 @@ def load_model(name_model):
 def get_dataset(name_dataset):
     data_set = open(name_dataset+'.txt', 'r')
     return data_set
-    
+
 if __name__ == '__main__':
     tokenizer = RegexpTokenizer(r'\w+')
     stopword_set = set(stopwords.words('portuguese'))
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     depressive = pre_process(data_set)
     data_set.close()
 
-    data_set = get_dataset('not_depressive')
+    data_set = get_dataset('non_depressive')
     non_depressive = pre_process(data_set)
     data_set.close()
 
