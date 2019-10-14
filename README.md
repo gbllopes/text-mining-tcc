@@ -5,7 +5,7 @@
 pip3 install -r requirements.txt
 ```
 
-## Baixar componentes do nltk
+## Baixar componentes do nltk (execute no prompt linha por linha)
 ```
 python3 
 import nltk

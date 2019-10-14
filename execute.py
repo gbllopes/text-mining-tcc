@@ -95,16 +95,20 @@ def load_model(name_model):
         print('Novo modelo treinado e salvo')
     return model
 
+def get_dataset(name_dataset):
+    data_set = open(name_dataset+'.txt', 'r')
+    return data_set
+    
 if __name__ == '__main__':
     tokenizer = RegexpTokenizer(r'\w+')
     stopword_set = set(stopwords.words('portuguese'))
     stemmer = stem.RSLPStemmer()
 
-    data_set = open('depressive.txt', 'r')
+    data_set = get_dataset('depressive')
     depressive = pre_process(data_set)
     data_set.close()
 
-    data_set = open('not_depressive.txt', 'r')
+    data_set = get_dataset('not_depressive')
     non_depressive = pre_process(data_set)
     data_set.close()
 
