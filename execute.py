@@ -25,6 +25,7 @@ def pre_process(data_set):
             new_str = unicodedata.normalize('NFD', phrase.lower() ).encode('ASCII', 'ignore').decode('UTF-8')       
             dlist = tokenizer.tokenize(new_str)
             dlist = list(set(dlist).difference(stopword_set))
+            print(dlist)
             for s in range(len(dlist)):
                 dlist[s] = stemmer.stem(dlist[s])
             new_data.append(dlist)
@@ -89,7 +90,7 @@ def print_metrics(vector_expected, vector_results):
     print("Taxa de acurácia: {:6.2f}%".format(accuracy * 100))
 
 # Treina um novo modelo caso necessário, carrega e retorna
-def load_model(name_model):
+def load_model(name_model, tagged_data):
     if os.path.exists(name_model+'.model'):
         model = Doc2Vec.load(name_model+'.model')
         print('Modelo carregado')
@@ -119,7 +120,7 @@ if __name__ == '__main__':
     tagged_data = [TaggedDocument(words=linha, tags=['0','NÃO_DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_non_depressive)]
     tagged_data += [TaggedDocument(words=linha, tags=['1','DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_depressive)]
 
-    model = load_model('Depression_Model')
+    model = load_model('Depression_Model', tagged_data)
 
     # Gera classificador
     classifier_naive_bayes = generate_classifier(model, train_depressive, train_non_depressive)
