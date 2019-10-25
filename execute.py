@@ -25,7 +25,6 @@ def pre_process(data_set):
             new_str = unicodedata.normalize('NFD', phrase.lower() ).encode('ASCII', 'ignore').decode('UTF-8')       
             dlist = tokenizer.tokenize(new_str)
             dlist = list(set(dlist).difference(stopword_set))
-            print(dlist)
             for s in range(len(dlist)):
                 dlist[s] = stemmer.stem(dlist[s])
             new_data.append(dlist)
@@ -45,14 +44,12 @@ def share_base(data):
 
 #Função que treina o modelo Doc2Vec
 def train_model(tagged_data):
-    max_epochs = 100 # Número de iterações sobre o corpus.
-    vec_size = 20 # Dimensão dos vetores de recursos.
-    alpha = 0.025 # Taxa de apredizagem inicial.
+    max_epochs = 275 # Número de iterações sobre o corpus.
+    vec_size = 100 # Dimensão dos vetores de recursos.
+    alpha = 0.01 # Taxa de apredizagem inicial.
     model = Doc2Vec(
         vector_size=vec_size,
         alpha=alpha, 
-        min_alpha=0.00025, # #taxa setada para queda de apredizagem a medida que o treinamento progride
-        min_count=1,# Descarta do aprendizado palavras com frequência total menor que o valor setado.
         window = 20,
         dm =1) # Define o algoritmo de treinamento. Se dm = 1 , 'memória distribuída' (PV-DM) é usada. Caso contrário, o pacote distribuído de palavras (PV-DBOW) é empregado.
     model.build_vocab(tagged_data)
@@ -60,8 +57,6 @@ def train_model(tagged_data):
         model.train(tagged_data,
                     total_examples=model.corpus_count,
                     epochs=model.iter)
-        model.alpha -= 0.0002
-        model.min_alpha = model.alpha
     return model
 
 def generate_vector(model, wordVector):
@@ -79,6 +74,8 @@ def generate_classifier(model, depressive, non_depressive):
         train_labels.append(array[index][1])
     # Treina Naive Bayes
     classifier = GaussianNB()
+    print(train_array)
+    print(train_labels)
     classifier.fit(train_array, train_labels)
     return classifier
 
@@ -116,7 +113,7 @@ if __name__ == '__main__':
     train_depressive, validation_depressive = share_base(depressive)
     train_non_depressive, validation_non_depressive = share_base(non_depressive)
 
-    # Gera o rótulo para o vetor, padrão atribuição do Doc2Vec
+    # Gera o rótulo para o vetor, padrão de atribuição do Doc2Vec
     tagged_data = [TaggedDocument(words=linha, tags=['0','NÃO_DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_non_depressive)]
     tagged_data += [TaggedDocument(words=linha, tags=['1','DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_depressive)]
 
@@ -135,7 +132,7 @@ if __name__ == '__main__':
 
     vector_result_expected = [1 for i in range(len(vectors_phrase_depressive))]
     vector_result_expected += [0 for i in range(len(vectors_non_depressive_phrase))]
-
+    print(vector_result_expected)
     #Atribuição dos valores aos vetores 
     vector_naive_bayes = []
     for phrase in vectors_phrase_depressive:
