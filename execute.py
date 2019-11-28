@@ -46,7 +46,7 @@ def share_base(data):
 def train_model(tagged_data):
     max_epochs = 275 # Número de iterações sobre o corpus.
     vec_size = 100 # Dimensão dos vetores de recursos.
-    alpha = 0.01 # Taxa de apredizagem inicial.
+    alpha = 0.01 # Taxa de apredizagem.
     model = Doc2Vec(
         vector_size=vec_size,
         alpha=alpha, 
@@ -60,7 +60,7 @@ def train_model(tagged_data):
     return model
 
 def generate_vector(model, wordVector):
-    return model.infer_vector(wordVector, steps=1000, alpha=0.01)
+    return model.infer_vector(wordVector, alpha=0.01)
 
 # Gera o classificador ( Naive Bayes )
 def generate_classifier(model, depressive, non_depressive):
@@ -72,10 +72,9 @@ def generate_classifier(model, depressive, non_depressive):
     for index in range(len(array)):
         train_array.append(array[index][0])
         train_labels.append(array[index][1])
+
     # Treina Naive Bayes
     classifier = GaussianNB()
-    print(train_array)
-    print(train_labels)
     classifier.fit(train_array, train_labels)
     return classifier
 
@@ -85,6 +84,12 @@ def print_metrics(vector_expected, vector_results):
 
     accuracy = metrics.accuracy_score(vector_expected, vector_results)
     print("Taxa de acurácia: {:6.2f}%".format(accuracy * 100))
+
+    recall = metrics.recall_score(vector_expected, vector_results)
+    print("Taxa de Recall: {:6.2f}%".format(recall * 100))
+
+    f1 = metrics.f1_score(vector_expected, vector_results)
+    print("Taxa de F1: {:6.2f}%".format(f1 * 100))
 
 # Treina um novo modelo caso necessário, carrega e retorna
 def load_model(name_model, tagged_data):
@@ -117,7 +122,7 @@ if __name__ == '__main__':
     tagged_data = [TaggedDocument(words=linha, tags=['0','NÃO_DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_non_depressive)]
     tagged_data += [TaggedDocument(words=linha, tags=['1','DEPRESSIVA_'+str(index)]) for index, linha in enumerate(train_depressive)]
 
-    model = load_model('Depression_Model', tagged_data)
+    model = load_model('Depression_Model_450', tagged_data)
 
     # Gera classificador
     classifier_naive_bayes = generate_classifier(model, train_depressive, train_non_depressive)
@@ -132,7 +137,7 @@ if __name__ == '__main__':
 
     vector_result_expected = [1 for i in range(len(vectors_phrase_depressive))]
     vector_result_expected += [0 for i in range(len(vectors_non_depressive_phrase))]
-    print(vector_result_expected)
+    
     #Atribuição dos valores aos vetores 
     vector_naive_bayes = []
     for phrase in vectors_phrase_depressive:
@@ -147,7 +152,6 @@ if __name__ == '__main__':
             vector_naive_bayes.append(1)
         else:
             vector_naive_bayes.append(0)
-
     print("\n\n####  Naive Bayes  ####")
     print_metrics(vector_result_expected, vector_naive_bayes)
 
@@ -158,7 +162,7 @@ if __name__ == '__main__':
         print('\nFrase após tratamento:')
         print(phrase)
         vector = generate_vector(model, phrase[0])
-        print('Vetor gerado:')
+        print('\nRepresentação vetorial da frase:')
         print(vector)
         result = classifier_naive_bayes.predict_proba([vector])
         print('\nResultado: ')
